@@ -1,0 +1,566 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Ironman Workout Buddy</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/marked@9.1.6/marked.min.js"></script>
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <!-- ── API Key Setup Modal ── -->
+  <div id="api-key-modal" class="modal-overlay hidden">
+    <div class="modal">
+      <div class="modal-icon">🔑</div>
+      <h2>Enter your Anthropic API Key</h2>
+      <p>This app uses the Anthropic API to power the AI coach. Your key is stored only in your browser and never sent to our server.</p>
+      <p class="modal-hint">Get a free key at <strong>console.anthropic.com</strong> → API Keys. Add a few dollars in credits to get started.</p>
+      <div class="modal-input-wrap">
+        <input type="password" id="api-key-input" placeholder="sk-ant-api03-..." autocomplete="off" />
+        <button class="btn btn-primary" onclick="saveApiKey()">Save & Continue</button>
+      </div>
+      <p class="modal-skip"><a onclick="skipApiKey()">Skip for now</a> — you won't be able to use the coach chat</p>
+    </div>
+  </div>
+
+  <!-- ── API Key Settings Button (top right) ── -->
+  <div id="app">
+
+    <!-- ── Sidebar ── -->
+    <aside class="sidebar">
+      <div class="sidebar-brand">
+        <div class="brand-icon">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/>
+          </svg>
+        </div>
+        <div class="brand-text">
+          <span class="brand-name">Workout Buddy</span>
+          <span class="brand-sub">Ironman Coach</span>
+        </div>
+      </div>
+
+      <div id="api-key-settings" class="api-key-indicator hidden">
+        <span id="api-key-status-dot" class="status-dot"></span>
+        <span id="api-key-status-label">No API key</span>
+        <button class="btn btn-ghost btn-sm" onclick="showApiKeyModal()">Change</button>
+      </div>
+
+      <nav class="sidebar-nav">
+        <a class="nav-item active" data-tab="overview">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg>
+          Overview
+        </a>
+        <a class="nav-item" data-tab="plan">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 01-2 2H5a2 2 0 01-2-2V5a2 2 0 012-2h11"/></svg>
+          Training Plan
+        </a>
+        <a class="nav-item" data-tab="log">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5"/><path d="M15.5 2.5a2.121 2.121 0 013 3L12 12l-4 1 1-4 6.5-6.5z"/></svg>
+          Log Session
+        </a>
+        <a class="nav-item" data-tab="progress">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
+          Progress
+        </a>
+        <a class="nav-item" data-tab="coach">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z"/></svg>
+          Coach Chat
+        </a>
+      </nav>
+
+      <div class="sidebar-profile">
+        <div class="profile-avatar">JC</div>
+        <div class="profile-info">
+          <span class="profile-name">Joshua</span>
+          <span class="profile-goal">Sub-12 Ironman</span>
+        </div>
+      </div>
+    </aside>
+
+    <!-- ── Mobile Bottom Nav ── -->
+    <nav class="mobile-nav">
+      <a class="mobile-nav-item active" data-tab="overview">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg>
+        <span>Home</span>
+      </a>
+      <a class="mobile-nav-item" data-tab="plan">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 01-2 2H5a2 2 0 01-2-2V5a2 2 0 012-2h11"/></svg>
+        <span>Plan</span>
+      </a>
+      <a class="mobile-nav-item" data-tab="log">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5"/><path d="M15.5 2.5a2.121 2.121 0 013 3L12 12l-4 1 1-4 6.5-6.5z"/></svg>
+        <span>Log</span>
+      </a>
+      <a class="mobile-nav-item" data-tab="progress">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
+        <span>Progress</span>
+      </a>
+      <a class="mobile-nav-item" data-tab="coach">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z"/></svg>
+        <span>Coach</span>
+      </a>
+    </nav>
+
+    <!-- ── Main ── -->
+    <main class="main">
+
+      <!-- OVERVIEW TAB -->
+      <section id="tab-overview" class="tab-content active">
+        <div class="page-header">
+          <div>
+            <h1>Training Overview</h1>
+            <p class="page-sub" id="overview-date"></p>
+          </div>
+          <div class="race-countdown-pill" id="race-countdown" onclick="switchTab('overview')" style="cursor:pointer"></div>
+        </div>
+
+        <!-- Dynamic coach notice -->
+        <div id="coach-notice" class="hidden"></div>
+
+        <!-- Key metrics -->
+        <div class="metrics-grid">
+          <div class="metric-card">
+            <div class="metric-label">FTP</div>
+            <div class="metric-value">201 <span class="metric-unit">W</span></div>
+            <div class="metric-sub">Tested Feb 3, 2026</div>
+            <div class="metric-bar"><div class="metric-fill" style="width:67%;background:var(--blue)"></div></div>
+          </div>
+          <div class="metric-card">
+            <div class="metric-label">Z2 Power</div>
+            <div class="metric-value">115–130 <span class="metric-unit">W</span></div>
+            <div class="metric-sub">Target: 145W → 180W by June</div>
+            <div class="metric-bar"><div class="metric-fill" style="width:40%;background:var(--amber)"></div></div>
+          </div>
+          <div class="metric-card">
+            <div class="metric-label">Race Target</div>
+            <div class="metric-value">200 <span class="metric-unit">W</span></div>
+            <div class="metric-sub">Busselton — 99% FTP</div>
+            <div class="metric-bar"><div class="metric-fill" style="width:85%;background:var(--green)"></div></div>
+          </div>
+          <div class="metric-card">
+            <div class="metric-label">Weekly Cap</div>
+            <div class="metric-value">13 <span class="metric-unit">hrs</span></div>
+            <div class="metric-sub">Swim + Bike + Run</div>
+            <div class="metric-bar"><div class="metric-fill" style="width:100%;background:var(--purple)"></div></div>
+          </div>
+        </div>
+
+        <!-- Zones + Race targets -->
+        <div class="two-col">
+          <div class="card">
+            <div class="card-header">
+              <h3>Heart Rate Zones</h3>
+              <span class="badge badge-warning">Retest due</span>
+            </div>
+            <div class="zone-list">
+              <div class="zone-row"><span class="zone-dot z1"></span><span class="zone-name">Zone 1</span><span class="zone-range">&lt; 124 bpm</span></div>
+              <div class="zone-row"><span class="zone-dot z2"></span><span class="zone-name">Zone 2</span><span class="zone-range">124 – 143 bpm</span></div>
+              <div class="zone-row"><span class="zone-dot z3"></span><span class="zone-name">Zone 3</span><span class="zone-range">144 – 164 bpm</span></div>
+              <div class="zone-row"><span class="zone-dot z4"></span><span class="zone-name">Zone 4</span><span class="zone-range">165 – 184 bpm</span></div>
+              <div class="zone-row"><span class="zone-dot z5"></span><span class="zone-name">Zone 5</span><span class="zone-range">185+ bpm</span></div>
+            </div>
+          </div>
+
+          <div class="card">
+            <div class="card-header">
+              <h3>My Races</h3>
+              <button class="btn btn-ghost btn-sm" onclick="openAddRace()">+ Add Race</button>
+            </div>
+            <div id="races-list"><p class="empty-state">Loading races...</p></div>
+          </div>
+        </div>
+
+        <!-- Race Edit Modal -->
+        <div id="race-modal" class="modal-overlay hidden">
+          <div class="modal" style="max-width:520px">
+            <h2 id="race-modal-title">Add Race</h2>
+            <input type="hidden" id="race-edit-id" />
+
+            <div class="form-row" style="text-align:left">
+              <div class="form-group" style="grid-column:1/-1">
+                <label>Race Name</label>
+                <input type="text" id="race-name" placeholder="e.g. Ironman Frankfurt" />
+              </div>
+            </div>
+            <div class="form-row" style="text-align:left">
+              <div class="form-group">
+                <label>Date</label>
+                <input type="date" id="race-date" />
+              </div>
+              <div class="form-group">
+                <label>Distance</label>
+                <select id="race-distance">
+                  <option value="Full Ironman">Full Ironman (140.6)</option>
+                  <option value="Half Ironman">Half Ironman (70.3)</option>
+                  <option value="Olympic">Olympic</option>
+                  <option value="Sprint">Sprint</option>
+                  <option value="Other">Other</option>
+                </select>
+              </div>
+            </div>
+            <div class="form-row" style="text-align:left">
+              <div class="form-group">
+                <label>Priority</label>
+                <select id="race-priority">
+                  <option value="A">A-Race (Peak)</option>
+                  <option value="B">B-Race (Strong effort)</option>
+                  <option value="C">C-Race (Training race)</option>
+                </select>
+              </div>
+              <div class="form-group">
+                <label>Location</label>
+                <input type="text" id="race-location" placeholder="e.g. Frankfurt, Germany" />
+              </div>
+            </div>
+
+            <div class="modal-section-label">Race Targets (optional)</div>
+            <div class="form-row" style="text-align:left">
+              <div class="form-group">
+                <label>Swim Target</label>
+                <input type="text" id="race-target-swim" placeholder="e.g. 1:10:00" />
+              </div>
+              <div class="form-group">
+                <label>Bike Target</label>
+                <input type="text" id="race-target-bike" placeholder="e.g. 5:00:00" />
+              </div>
+            </div>
+            <div class="form-row" style="text-align:left">
+              <div class="form-group">
+                <label>Run Target</label>
+                <input type="text" id="race-target-run" placeholder="e.g. 4:00:00" />
+              </div>
+              <div class="form-group">
+                <label>Total Target</label>
+                <input type="text" id="race-target-total" placeholder="e.g. 11:30:00" />
+              </div>
+            </div>
+            <div class="form-row" style="text-align:left">
+              <div class="form-group">
+                <label>Target Bike Power (W)</label>
+                <input type="number" id="race-target-power" placeholder="e.g. 200" />
+              </div>
+              <div class="form-group">
+                <label>Target Run Pace</label>
+                <input type="text" id="race-target-pace" placeholder="e.g. 5:30/km" />
+              </div>
+            </div>
+
+            <div style="display:flex;gap:10px;margin-top:16px">
+              <button class="btn btn-primary" style="flex:1" onclick="saveRace()">Save Race</button>
+              <button class="btn btn-ghost" onclick="closeRaceModal()">Cancel</button>
+              <button class="btn btn-ghost" id="race-delete-btn" onclick="deleteRace()" style="color:var(--red)">Delete</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Goals & Targets -->
+        <div class="card">
+          <div class="card-header">
+            <h3>Goals & Targets</h3>
+            <button class="btn btn-ghost btn-sm" onclick="openAddTarget()">+ Add Target</button>
+          </div>
+          <div id="targets-list"></div>
+        </div>
+
+        <!-- Target Edit Modal -->
+        <div id="target-modal" class="modal-overlay hidden">
+          <div class="modal">
+            <h2 id="target-modal-title">Edit Target</h2>
+            <input type="hidden" id="target-edit-id" />
+            <div class="form-group" style="margin-bottom:14px;text-align:left">
+              <label>Label</label>
+              <input type="text" id="target-edit-label" placeholder="e.g. FTP, Swim Pace..." />
+            </div>
+            <div class="form-row" style="text-align:left">
+              <div class="form-group">
+                <label>Current Value</label>
+                <input type="number" id="target-edit-current" placeholder="e.g. 201" step="any" />
+              </div>
+              <div class="form-group">
+                <label>Target Value</label>
+                <input type="number" id="target-edit-target" placeholder="e.g. 240" step="any" />
+              </div>
+            </div>
+            <div class="form-row" style="text-align:left">
+              <div class="form-group">
+                <label>Unit</label>
+                <input type="text" id="target-edit-unit" placeholder="e.g. W, km/h, /100m" />
+              </div>
+              <div class="form-group" style="justify-content:flex-end;padding-top:20px">
+                <label class="checkbox-label">
+                  <input type="checkbox" id="target-edit-lower" />
+                  <span>Lower is better</span>
+                </label>
+              </div>
+            </div>
+            <div style="display:flex;gap:10px;margin-top:16px">
+              <button class="btn btn-primary" style="flex:1" onclick="saveTarget()">Save</button>
+              <button class="btn btn-ghost" onclick="closeTargetModal()">Cancel</button>
+              <button class="btn btn-ghost" id="target-delete-btn" onclick="deleteTarget()" style="color:var(--red)">Delete</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Integrations -->
+        <div class="card" id="integrations-card">
+          <div class="card-header">
+            <h3>Integrations</h3>
+          </div>
+          <div class="integrations-row">
+
+            <!-- Strava -->
+            <div class="integration-item" id="strava-integration">
+              <div class="integration-logo strava-logo">
+                <svg viewBox="0 0 24 24" fill="currentColor" width="22" height="22"><path d="M15.387 17.944l-2.089-4.116h-3.065L15.387 24l5.15-10.172h-3.066m-7.008-5.599l2.836 5.598h4.172L10.463 0l-7 13.828h4.169"/></svg>
+              </div>
+              <div class="integration-info">
+                <span class="integration-name">Strava</span>
+                <span class="integration-status" id="strava-status-text">Not connected</span>
+              </div>
+              <div class="integration-actions" id="strava-actions">
+                <a href="#" class="btn btn-strava" id="strava-connect-btn" onclick="stravaConnect()">Connect</a>
+              </div>
+            </div>
+
+            <!-- Garmin -->
+            <div class="integration-item">
+              <div class="integration-logo garmin-logo">
+                <svg viewBox="0 0 24 24" fill="currentColor" width="22" height="22"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-1 14H9V8h2v8zm4 0h-2V8h2v8z"/></svg>
+              </div>
+              <div class="integration-info">
+                <span class="integration-name">Garmin</span>
+                <span class="integration-status">Via Strava sync</span>
+              </div>
+              <div class="integration-actions">
+                <span class="badge badge-warning">Enable in Garmin Connect → Strava</span>
+              </div>
+            </div>
+
+          </div>
+        </div>
+
+        <!-- Recent sessions -->
+        <div class="card">
+          <div class="card-header">
+            <h3>Recent Sessions</h3>
+            <a class="link-btn" data-tab="log">View all</a>
+          </div>
+          <div id="recent-sessions-list">
+            <p class="empty-state">No sessions logged yet. <a data-tab="log" class="link">Log your first session →</a></p>
+          </div>
+        </div>
+      </section>
+
+      <!-- TRAINING PLAN TAB -->
+      <section id="tab-plan" class="tab-content">
+        <div class="page-header">
+          <div>
+            <h1>Training Plan</h1>
+            <p class="page-sub">AI-generated weekly plan from your coach</p>
+          </div>
+          <button class="btn btn-primary" id="generate-plan-btn" onclick="generatePlan()">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"><path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83"/></svg>
+            Generate This Week's Plan
+          </button>
+        </div>
+
+        <div id="plan-loading" class="loading-block hidden">
+          <div class="spinner"></div>
+          <span>Your coach is building your plan...</span>
+        </div>
+
+        <div id="plan-content" class="card markdown-body">
+          <div class="plan-empty">
+            <div class="plan-empty-icon">📋</div>
+            <h3>No plan generated yet</h3>
+            <p>Click "Generate This Week's Plan" to get a full structured training week from your coach.</p>
+            <p class="hint">Or jump into <a data-tab="coach" class="link">Coach Chat</a> to discuss your training first.</p>
+          </div>
+        </div>
+      </section>
+
+      <!-- LOG SESSION TAB -->
+      <section id="tab-log" class="tab-content">
+        <div class="page-header">
+          <div>
+            <h1>Log Session</h1>
+            <p class="page-sub">Record your training and get coach feedback</p>
+          </div>
+        </div>
+
+        <div class="two-col">
+          <div class="card">
+            <div class="card-header"><h3>New Session</h3></div>
+            <form id="session-form" onsubmit="submitSession(event)">
+              <div class="form-row">
+                <div class="form-group">
+                  <label>Date</label>
+                  <input type="date" id="s-date" required />
+                </div>
+                <div class="form-group">
+                  <label>Discipline</label>
+                  <select id="s-type">
+                    <option value="swim">🏊 Swim</option>
+                    <option value="bike">🚴 Bike</option>
+                    <option value="run">🏃 Run</option>
+                    <option value="brick">🔥 Brick</option>
+                    <option value="strength">💪 Strength & Conditioning</option>
+                  </select>
+                </div>
+              </div>
+              <div class="form-row">
+                <div class="form-group">
+                  <label>Duration (min)</label>
+                  <input type="number" id="s-duration" placeholder="60" min="1" />
+                </div>
+                <div class="form-group">
+                  <label>Distance</label>
+                  <input type="text" id="s-distance" placeholder="e.g. 3.8km / 90km / 42.2km" />
+                </div>
+              </div>
+              <div class="form-row" id="bike-fields">
+                <div class="form-group">
+                  <label>Avg Power (W)</label>
+                  <input type="number" id="s-power" placeholder="e.g. 145" />
+                </div>
+                <div class="form-group">
+                  <label>Avg Cadence (rpm)</label>
+                  <input type="number" id="s-cadence" placeholder="e.g. 91" />
+                </div>
+              </div>
+              <div class="form-row">
+                <div class="form-group">
+                  <label>Avg HR (bpm)</label>
+                  <input type="number" id="s-hr" placeholder="e.g. 138" />
+                </div>
+                <div class="form-group">
+                  <label>RPE (1–10)</label>
+                  <input type="number" id="s-rpe" placeholder="e.g. 6" min="1" max="10" />
+                </div>
+              </div>
+              <div class="form-group">
+                <label>Notes / How did it feel?</label>
+                <textarea id="s-notes" rows="3" placeholder="Describe the session, how you felt, any issues..."></textarea>
+              </div>
+              <div class="form-actions">
+                <label class="checkbox-label">
+                  <input type="checkbox" id="s-feedback" checked />
+                  <span>Request coach feedback after logging</span>
+                </label>
+                <button type="submit" class="btn btn-primary">Log Session</button>
+              </div>
+            </form>
+          </div>
+
+          <!-- Logged sessions list -->
+          <div class="card sessions-panel">
+            <div class="card-header">
+              <h3>Session History</h3>
+              <span id="session-count" class="badge badge-blue">0</span>
+            </div>
+            <div id="sessions-list">
+              <p class="empty-state">No sessions logged yet.</p>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- PROGRESS TAB -->
+      <section id="tab-progress" class="tab-content">
+        <div class="page-header">
+          <div>
+            <h1>Progress</h1>
+            <p class="page-sub">Track your fitness development over time</p>
+          </div>
+        </div>
+
+        <div class="charts-grid">
+          <div class="card chart-card">
+            <div class="card-header"><h3>Weekly Training Volume (hrs)</h3></div>
+            <canvas id="volumeChart"></canvas>
+          </div>
+          <div class="card chart-card">
+            <div class="card-header"><h3>Session Breakdown by Type</h3></div>
+            <canvas id="typeChart"></canvas>
+          </div>
+          <div class="card chart-card wide">
+            <div class="card-header"><h3>Average Power Trend (Bike sessions)</h3></div>
+            <canvas id="powerChart"></canvas>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="card-header"><h3>FTP History</h3></div>
+          <div class="ftp-history">
+            <div class="ftp-entry">
+              <span class="ftp-date">Feb 3, 2026</span>
+              <div class="ftp-bar-wrap">
+                <div class="ftp-bar-fill" style="width:67%"></div>
+              </div>
+              <span class="ftp-watts">201W</span>
+              <span class="ftp-badge current">Current</span>
+            </div>
+            <div class="ftp-entry">
+              <span class="ftp-date">Ironman WA target</span>
+              <div class="ftp-bar-wrap">
+                <div class="ftp-bar-fill target" style="width:100%"></div>
+              </div>
+              <span class="ftp-watts">~230W+</span>
+              <span class="ftp-badge target-badge">Target</span>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- COACH CHAT TAB -->
+      <section id="tab-coach" class="tab-content">
+        <div class="page-header">
+          <div>
+            <h1>Coach Chat</h1>
+            <p class="page-sub">Send updates, ask questions, get your weekly plan</p>
+          </div>
+          <button class="btn btn-ghost btn-sm" onclick="clearHistory()">Clear history</button>
+        </div>
+
+        <div class="chat-quick-actions">
+          <button class="quick-btn" onclick="quickSend('Generate my training plan for this week. Current date: ' + new Date().toDateString())">📋 This Week's Plan</button>
+          <button class="quick-btn" onclick="quickSend('How is my progress toward sub-12? Where do I stand right now?')">📊 Progress Check</button>
+          <button class="quick-btn" onclick="quickSend('What should I focus on most in training right now?')">🎯 Focus Today</button>
+          <button class="quick-btn" onclick="quickSend('Give me a challenging but safe swim set for today to improve my 2:00/100m pace.')">🏊 Swim Set</button>
+          <button class="quick-btn" onclick="quickSend('Give me a Z2 bike session with specific power targets based on my FTP of 201W.')">🚴 Bike Session</button>
+        </div>
+
+        <div class="chat-window" id="chat-window">
+          <div class="chat-welcome">
+            <div class="coach-avatar">🏆</div>
+            <div class="welcome-text">
+              <h3>Coach is ready</h3>
+              <p>Send a session update, ask for your weekly plan, or discuss your training. Your full athlete profile and history are loaded.</p>
+            </div>
+          </div>
+        </div>
+
+        <div class="chat-input-area">
+          <textarea
+            id="chat-input"
+            placeholder="Update the coach on your session, ask for a plan, or discuss your training..."
+            rows="2"
+            onkeydown="handleChatKey(event)"
+          ></textarea>
+          <button class="btn btn-primary send-btn" id="send-btn" onclick="sendMessage()">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="18" height="18"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
+          </button>
+        </div>
+        <p class="chat-hint">Shift+Enter for new line · Enter to send</p>
+      </section>
+
+    </main>
+  </div>
+
+  <script src="app.js"></script>
+</body>
+</html>
