@@ -4,10 +4,16 @@ const Anthropic = require('@anthropic-ai/sdk');
 const fs = require('fs');
 const path = require('path');
 const crypto = require('crypto');
+const passport = require('passport');
+const GoogleStrategy = require('passport-google-oauth20').Strategy;
+const jwt = require('jsonwebtoken');
 
 const app = express();
 app.use(express.json());
 app.use(express.static('public'));
+
+const JWT_SECRET = process.env.JWT_SECRET || 'workout-buddy-dev-secret';
+const PORT = process.env.PORT || 3000;
 
 const client = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
 
@@ -36,9 +42,59 @@ function saveJSON(file, data) {
   fs.writeFileSync(file, JSON.stringify(data, null, 2));
 }
 
-// Validate userId — alphanumeric + hyphens only, max 64 chars
+// Validate userId — UUID, google-prefixed, or standard alphanumeric
 function validUserId(id) {
-  return typeof id === 'string' && /^[a-zA-Z0-9-]{8,64}$/.test(id);
+  return typeof id === 'string' && /^(g_\d{5,30}|[a-zA-Z0-9-]{8,64})$/.test(id);
+}
+
+// ── Google OAuth ──────────────────────────────────────────────────────────────
+if (process.env.GOOGLE_CLIENT_ID) {
+  passport.use(new GoogleStrategy({
+    clientID:     process.env.GOOGLE_CLIENT_ID,
+    clientSecret: process.env.GOOGLE_CLIENT_SECRET,
+    callbackURL:  process.env.GOOGLE_REDIRECT_URI || `http://localhost:${PORT}/auth/google/callback`,
+  }, (accessToken, refreshToken, profile, done) => {
+    done(null, {
+      userId: `g_${profile.id}`,
+      name:   profile.displayName,
+      email:  profile.emails?.[0]?.value || '',
+      avatar: profile.photos?.[0]?.value || '',
+    });
+  }));
+  app.use(passport.initialize());
+}
+
+app.get('/auth/google', (req, res, next) => {
+  if (!process.env.GOOGLE_CLIENT_ID) return res.redirect('/?auth=not-configured');
+  passport.authenticate('google', { scope: ['profile', 'email'], session: false })(req, res, next);
+});
+
+app.get('/auth/google/callback',
+  passport.authenticate('google', { session: false, failureRedirect: '/?auth=error' }),
+  (req, res) => {
+    const token = jwt.sign(req.user, JWT_SECRET, { expiresIn: '365d' });
+    res.redirect(`/?token=${token}`);
+  }
+);
+
+app.get('/auth/status', (req, res) => {
+  const token = req.headers['x-auth-token'];
+  if (!token) return res.json({ loggedIn: false, googleConfigured: !!process.env.GOOGLE_CLIENT_ID });
+  try {
+    const user = jwt.verify(token, JWT_SECRET);
+    res.json({ loggedIn: true, user, googleConfigured: !!process.env.GOOGLE_CLIENT_ID });
+  } catch {
+    res.json({ loggedIn: false, googleConfigured: !!process.env.GOOGLE_CLIENT_ID });
+  }
+});
+
+// Resolve userId from JWT token or fallback to direct param (backward compat)
+function resolveUserId(req) {
+  const token = req.headers['x-auth-token'];
+  if (token) {
+    try { return jwt.verify(token, JWT_SECRET).userId; } catch {}
+  }
+  return req.body?.userId || req.query?.userId;
 }
 
 // ── Strava helpers ────────────────────────────────────────────────────────────
@@ -314,7 +370,8 @@ function buildTrainingContext(userId) {
 
 // ── Chat (streaming SSE) ──────────────────────────────────────────────────────
 app.post('/api/chat', async (req, res) => {
-  const { message, userId, apiKey } = req.body;
+  const { message, apiKey } = req.body;
+  const userId = resolveUserId(req);
   if (!message) return res.status(400).json({ error: 'Message required' });
   if (!validUserId(userId)) return res.status(400).json({ error: 'Invalid userId' });
 
@@ -369,14 +426,15 @@ app.post('/api/chat', async (req, res) => {
 const NOTICE_TTL_MS = 24 * 60 * 60 * 1000; // regenerate after 24 hours
 
 app.get('/api/notices', (req, res) => {
-  const { userId } = req.query;
+  const userId = resolveUserId(req);
   if (!validUserId(userId)) return res.status(400).json({ error: 'Invalid userId' });
   const notice = loadJSON(userFile(userId, 'notice.json'), null);
   res.json(notice || { type: null, message: null, generatedAt: null });
 });
 
 app.post('/api/notices/generate', async (req, res) => {
-  const { userId, apiKey } = req.body;
+  const userId = resolveUserId(req);
+  const { apiKey } = req.body;
   if (!validUserId(userId)) return res.status(400).json({ error: 'Invalid userId' });
 
   const sessions = loadJSON(userFile(userId, 'sessions.json'), []);
@@ -461,14 +519,15 @@ const DEFAULT_RACES = [
 ];
 
 app.get('/api/races', (req, res) => {
-  const { userId } = req.query;
+  const userId = resolveUserId(req);
   if (!validUserId(userId)) return res.status(400).json({ error: 'Invalid userId' });
   const races = loadJSON(userFile(userId, 'races.json'), null);
   res.json(races ?? DEFAULT_RACES);
 });
 
 app.post('/api/races', (req, res) => {
-  const { userId, races } = req.body;
+  const userId = resolveUserId(req);
+  const { races } = req.body;
   if (!validUserId(userId)) return res.status(400).json({ error: 'Invalid userId' });
   if (!Array.isArray(races)) return res.status(400).json({ error: 'races must be an array' });
   saveJSON(userFile(userId, 'races.json'), races);
@@ -476,7 +535,8 @@ app.post('/api/races', (req, res) => {
 });
 
 app.post('/api/races/opinion', async (req, res) => {
-  const { userId, apiKey, race } = req.body;
+  const userId = resolveUserId(req);
+  const { apiKey, race } = req.body;
   if (!validUserId(userId)) return res.status(400).json({ error: 'Invalid userId' });
 
   const anthropicClient = apiKey ? new Anthropic({ apiKey: apiKey.trim() }) : client;
@@ -524,7 +584,7 @@ const DEFAULT_TARGETS = [
 ];
 
 app.get('/api/targets', (req, res) => {
-  const { userId } = req.query;
+  const userId = resolveUserId(req);
   if (!validUserId(userId)) return res.status(400).json({ error: 'Invalid userId' });
   const file = userFile(userId, 'targets.json');
   const targets = loadJSON(file, null);
@@ -534,7 +594,8 @@ app.get('/api/targets', (req, res) => {
 });
 
 app.post('/api/targets', (req, res) => {
-  const { userId, targets } = req.body;
+  const userId = resolveUserId(req);
+  const { targets } = req.body;
   if (!validUserId(userId)) return res.status(400).json({ error: 'Invalid userId' });
   if (!Array.isArray(targets)) return res.status(400).json({ error: 'targets must be an array' });
   saveJSON(userFile(userId, 'targets.json'), targets);
@@ -543,13 +604,14 @@ app.post('/api/targets', (req, res) => {
 
 // ── Sessions ──────────────────────────────────────────────────────────────────
 app.get('/api/sessions', (req, res) => {
-  const { userId } = req.query;
+  const userId = resolveUserId(req);
   if (!validUserId(userId)) return res.status(400).json({ error: 'Invalid userId' });
   res.json(loadJSON(userFile(userId, 'sessions.json'), []));
 });
 
 app.post('/api/sessions', (req, res) => {
-  const { userId, ...sessionData } = req.body;
+  const userId = resolveUserId(req);
+  const { userId: _uid, ...sessionData } = req.body;
   if (!validUserId(userId)) return res.status(400).json({ error: 'Invalid userId' });
   const file = userFile(userId, 'sessions.json');
   const sessions = loadJSON(file, []);
@@ -560,7 +622,7 @@ app.post('/api/sessions', (req, res) => {
 });
 
 app.delete('/api/sessions/:id', (req, res) => {
-  const { userId } = req.query;
+  const userId = resolveUserId(req);
   if (!validUserId(userId)) return res.status(400).json({ error: 'Invalid userId' });
   const file = userFile(userId, 'sessions.json');
   const sessions = loadJSON(file, []).filter((s) => s.id !== Number(req.params.id));
@@ -570,13 +632,13 @@ app.delete('/api/sessions/:id', (req, res) => {
 
 // ── Conversation history ──────────────────────────────────────────────────────
 app.get('/api/history', (req, res) => {
-  const { userId } = req.query;
+  const userId = resolveUserId(req);
   if (!validUserId(userId)) return res.status(400).json({ error: 'Invalid userId' });
   res.json(loadJSON(userFile(userId, 'conversation.json'), []));
 });
 
 app.post('/api/history/clear', (req, res) => {
-  const { userId } = req.body;
+  const userId = resolveUserId(req);
   if (!validUserId(userId)) return res.status(400).json({ error: 'Invalid userId' });
   saveJSON(userFile(userId, 'conversation.json'), []);
   res.json({ success: true });
@@ -584,7 +646,7 @@ app.post('/api/history/clear', (req, res) => {
 
 // ── Strava OAuth ──────────────────────────────────────────────────────────────
 app.get('/auth/strava', (req, res) => {
-  const { userId } = req.query;
+  const userId = resolveUserId(req);
   if (!validUserId(userId)) return res.status(400).send('Invalid userId');
   if (!process.env.STRAVA_CLIENT_ID) return res.send('STRAVA_CLIENT_ID not set in .env');
 
@@ -625,7 +687,7 @@ app.get('/auth/strava/callback', async (req, res) => {
 });
 
 app.get('/api/strava/status', (req, res) => {
-  const { userId } = req.query;
+  const userId = resolveUserId(req);
   if (!validUserId(userId)) return res.status(400).json({ error: 'Invalid userId' });
   const tokens = loadJSON(userFile(userId, 'tokens.json'), null);
   res.json({
@@ -638,7 +700,7 @@ app.get('/api/strava/status', (req, res) => {
 });
 
 app.post('/api/strava/sync', async (req, res) => {
-  const { userId } = req.body;
+  const userId = resolveUserId(req);
   if (!validUserId(userId)) return res.status(400).json({ error: 'Invalid userId' });
 
   const token = await getStravaToken(userId);
@@ -689,7 +751,7 @@ app.post('/api/strava/sync', async (req, res) => {
 });
 
 app.post('/auth/strava/disconnect', (req, res) => {
-  const { userId } = req.body;
+  const userId = resolveUserId(req);
   if (!validUserId(userId)) return res.status(400).json({ error: 'Invalid userId' });
   const tokenPath = userFile(userId, 'tokens.json');
   if (fs.existsSync(tokenPath)) fs.unlinkSync(tokenPath);
@@ -697,7 +759,6 @@ app.post('/auth/strava/disconnect', (req, res) => {
 });
 
 // ── Start ─────────────────────────────────────────────────────────────────────
-const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => {
   console.log(`\n🏊 Ironman Workout Buddy running at http://localhost:${PORT}\n`);
 });
