@@ -201,7 +201,7 @@ const DISCIPLINE_COLORS = {
 let charts = {};
 
 /* ── Init ────────────────────────────────────────────────────────────────────── */
-document.addEventListener('DOMContentLoaded', () => {
+document.addEventListener('DOMContentLoaded', async () => {
   setupNavigation();
   setTodayDate();
   await checkAuth();
