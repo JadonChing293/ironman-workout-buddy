@@ -9,7 +9,38 @@ const GoogleStrategy = require('passport-google-oauth20').Strategy;
 const jwt = require('jsonwebtoken');
 
 const app = express();
-app.use(express.json());
+
+// ── Security headers ──────────────────────────────────────────────────────────
+app.use((req, res, next) => {
+  res.removeHeader('X-Powered-By');
+  res.setHeader('X-Content-Type-Options', 'nosniff');
+  res.setHeader('X-Frame-Options', 'DENY');
+  res.setHeader('Referrer-Policy', 'strict-origin-when-cross-origin');
+  res.setHeader('Permissions-Policy', 'geolocation=(), microphone=(), camera=()');
+  res.setHeader('Content-Security-Policy',
+    "default-src 'self'; " +
+    "script-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net; " +
+    "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; " +
+    "font-src 'self' https://fonts.gstatic.com; " +
+    "img-src 'self' data: https://lh3.googleusercontent.com https://dgalywyr863hv.cloudfront.net; " +
+    "connect-src 'self'; " +
+    "frame-ancestors 'none';"
+  );
+  next();
+});
+
+// ── Input sanitization ────────────────────────────────────────────────────────
+function sanitize(val, maxLen = 500) {
+  if (val == null) return '';
+  return String(val)
+    .replace(/<[^>]*>/g, '')           // strip HTML tags
+    .replace(/javascript:/gi, '')      // strip JS protocol
+    .replace(/on\w+\s*=/gi, '')        // strip event handlers
+    .trim()
+    .slice(0, maxLen);
+}
+
+app.use(express.json({ limit: '500kb' }));
 app.use(express.static('public'));
 
 const JWT_SECRET = process.env.JWT_SECRET || 'workout-buddy-dev-secret';
@@ -563,7 +594,27 @@ app.post('/api/races', (req, res) => {
   const { races } = req.body;
   if (!validUserId(userId)) return res.status(400).json({ error: 'Invalid userId' });
   if (!Array.isArray(races)) return res.status(400).json({ error: 'races must be an array' });
-  saveJSON(userFile(userId, 'races.json'), races);
+  const ALLOWED_DISTANCES = ['Full Ironman','Half Ironman','Olympic','Sprint','Other'];
+  const ALLOWED_PRIORITIES = ['A','B','C'];
+  const clean = races.slice(0, 30).map(r => ({
+    id:       sanitize(r.id,       40),
+    name:     sanitize(r.name,     100),
+    date:     sanitize(r.date,     10),
+    distance: ALLOWED_DISTANCES.includes(r.distance) ? r.distance : 'Other',
+    priority: ALLOWED_PRIORITIES.includes(r.priority) ? r.priority : 'C',
+    location: sanitize(r.location, 100),
+    targets:  r.targets ? {
+      swim:      sanitize(r.targets.swim,     10),
+      t1:        sanitize(r.targets.t1,       10),
+      bike:      sanitize(r.targets.bike,     10),
+      t2:        sanitize(r.targets.t2,       10),
+      run:       sanitize(r.targets.run,      10),
+      total:     sanitize(r.targets.total,    10),
+      bikePower: isFinite(r.targets.bikePower) ? Number(r.targets.bikePower) : null,
+      runPace:   sanitize(r.targets.runPace,  20),
+    } : {},
+  }));
+  saveJSON(userFile(userId, 'races.json'), clean);
   res.json({ success: true });
 });
 
@@ -619,10 +670,14 @@ app.post('/api/profile', express.json({ limit: '3mb' }), (req, res) => {
   const userId = resolveUserId(req);
   const { name, goal, avatar } = req.body;
   if (!validUserId(userId)) return res.status(400).json({ error: 'Invalid userId' });
+  // Avatar must be a base64 data URI (image only)
+  const safeAvatar = typeof avatar === 'string' && /^data:image\/(jpeg|png|webp|gif);base64,/.test(avatar)
+    ? avatar.slice(0, 2 * 1024 * 1024)
+    : '';
   saveJSON(userFile(userId, 'profile.json'), {
-    name:   (name   || '').slice(0, 80),
-    goal:   (goal   || '').slice(0, 120),
-    avatar: (avatar || '').slice(0, 2 * 1024 * 1024), // 2MB cap
+    name:   sanitize(name, 80),
+    goal:   sanitize(goal, 120),
+    avatar: safeAvatar,
   });
   res.json({ success: true });
 });
@@ -651,7 +706,16 @@ app.post('/api/targets', (req, res) => {
   const { targets } = req.body;
   if (!validUserId(userId)) return res.status(400).json({ error: 'Invalid userId' });
   if (!Array.isArray(targets)) return res.status(400).json({ error: 'targets must be an array' });
-  saveJSON(userFile(userId, 'targets.json'), targets);
+  const clean = targets.slice(0, 20).map(t => ({
+    id:           sanitize(t.id,    32),
+    label:        sanitize(t.label, 80),
+    unit:         sanitize(t.unit,  20),
+    current:      isFinite(t.current) ? Number(t.current) : null,
+    target:       isFinite(t.target)  ? Number(t.target)  : null,
+    lowerIsBetter: !!t.lowerIsBetter,
+    autoCalc:     t.autoCalc ? sanitize(t.autoCalc, 32) : null,
+  }));
+  saveJSON(userFile(userId, 'targets.json'), clean);
   res.json({ success: true });
 });
 
@@ -664,11 +728,25 @@ app.get('/api/sessions', (req, res) => {
 
 app.post('/api/sessions', (req, res) => {
   const userId = resolveUserId(req);
-  const { userId: _uid, ...sessionData } = req.body;
   if (!validUserId(userId)) return res.status(400).json({ error: 'Invalid userId' });
+  const b = req.body;
+  const session = {
+    id:        Date.now(),
+    createdAt: new Date().toISOString(),
+    date:      sanitize(b.date,     10),
+    type:      sanitize(b.type,     20),
+    duration:  isFinite(b.duration) ? Number(b.duration) : null,
+    distance:  sanitize(b.distance, 30),
+    power:     isFinite(b.power)    ? Number(b.power)    : null,
+    cadence:   isFinite(b.cadence)  ? Number(b.cadence)  : null,
+    hr:        isFinite(b.hr)       ? Number(b.hr)       : null,
+    maxHr:     isFinite(b.maxHr)    ? Number(b.maxHr)    : null,
+    rpe:       isFinite(b.rpe)      ? Number(b.rpe)      : null,
+    calories:  isFinite(b.calories) ? Number(b.calories) : null,
+    notes:     sanitize(b.notes,    1000),
+  };
   const file = userFile(userId, 'sessions.json');
   const sessions = loadJSON(file, []);
-  const session = { id: Date.now(), createdAt: new Date().toISOString(), ...sessionData };
   sessions.unshift(session);
   saveJSON(file, sessions);
   res.json(session);
@@ -809,6 +887,12 @@ app.post('/auth/strava/disconnect', (req, res) => {
   const tokenPath = userFile(userId, 'tokens.json');
   if (fs.existsSync(tokenPath)) fs.unlinkSync(tokenPath);
   res.json({ success: true });
+});
+
+// ── Global error handler — never leak stack traces ────────────────────────────
+app.use((err, req, res, _next) => {
+  console.error(err);
+  res.status(500).json({ error: 'Internal server error' });
 });
 
 // ── Start ─────────────────────────────────────────────────────────────────────
