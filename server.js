@@ -605,11 +605,11 @@ Give a brief, direct coach opinion (3–5 sentences max) on whether these target
 
 // ── Targets ───────────────────────────────────────────────────────────────────
 const DEFAULT_TARGETS = [
-  { id: 'ftp',         label: 'FTP',            unit: 'W',      current: 201,  target: 240,  autoCalc: null },
-  { id: 'z2power',     label: 'Z2 Power',        unit: 'W',      current: 130,  target: 180,  autoCalc: 'z2power' },
-  { id: 'racepower',   label: 'Race Power',      unit: 'W',      current: 134,  target: 200,  autoCalc: null },
-  { id: 'swimpace',    label: 'Swim Pace',        unit: '/100m',  current: 125,  target: 105,  lowerIsBetter: true, autoCalc: null },
-  { id: 'weeklyhours', label: 'Weekly Volume',    unit: 'hrs',    current: null, target: 13,   autoCalc: 'weeklyhours' },
+  { id: 'ftp',         label: 'FTP',            unit: 'W',      current: 0,    target: 0,    autoCalc: null },
+  { id: 'z2power',     label: 'Z2 Power',        unit: 'W',      current: 0,    target: 0,    autoCalc: 'z2power' },
+  { id: 'racepower',   label: 'Race Power',      unit: 'W',      current: 0,    target: 0,    autoCalc: null },
+  { id: 'swimpace',    label: 'Swim Pace',        unit: '/100m',  current: 0,    target: 0,    lowerIsBetter: true, autoCalc: null },
+  { id: 'weeklyhours', label: 'Weekly Volume',    unit: 'hrs',    current: null, target: 0,    autoCalc: 'weeklyhours' },
 ];
 
 app.get('/api/targets', (req, res) => {
