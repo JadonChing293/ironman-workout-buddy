@@ -74,6 +74,10 @@
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
           Profile
         </a>
+        <a class="nav-item" data-tab="guide">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4M12 8h.01"/></svg>
+          User Guide
+        </a>
       </nav>
 
       <!-- Sync -->
@@ -563,6 +567,133 @@
           </button>
         </div>
         <p class="chat-hint">Shift+Enter for new line · Enter to send</p>
+      </section>
+
+      <!-- GUIDE TAB -->
+      <section id="tab-guide" class="tab-content">
+        <div class="page-header">
+          <div>
+            <h1>User Guide</h1>
+            <p class="page-sub">Everything you need to get started</p>
+          </div>
+        </div>
+
+        <div class="guide-wrap">
+
+          <div class="guide-section">
+            <div class="guide-step-num">1</div>
+            <div class="guide-body">
+              <h3>Set Up Your Profile</h3>
+              <p>Go to the <strong>Profile</strong> tab to set your display name, goal, and upload a profile photo. Your name will appear across all features.</p>
+            </div>
+          </div>
+
+          <div class="guide-section">
+            <div class="guide-step-num">2</div>
+            <div class="guide-body">
+              <h3>Add Your Anthropic API Key</h3>
+              <p>The AI coach requires an Anthropic API key. Click the <strong>API Key</strong> indicator in the sidebar to enter yours.</p>
+              <ul>
+                <li>Get a key at <strong>console.anthropic.com</strong> → API Keys</li>
+                <li>Add a few dollars of credits to get started (~$10 lasts a long time)</li>
+                <li>Your key is stored in your browser only — never sent to our server</li>
+              </ul>
+            </div>
+          </div>
+
+          <div class="guide-section">
+            <div class="guide-step-num">3</div>
+            <div class="guide-body">
+              <h3>Set Your Goals & Targets</h3>
+              <p>On the <strong>Overview</strong> tab, scroll to <em>Goals & Targets</em> and click ✏️ next to each target to set your current value and goal. The 4 metric cards at the top update automatically.</p>
+              <ul>
+                <li><strong>FTP</strong> — your functional threshold power in watts</li>
+                <li><strong>Z2 Power</strong> — your aerobic base power target</li>
+                <li><strong>Race Power</strong> — target bike power for race day</li>
+                <li><strong>Weekly Volume</strong> — your training hours cap per week</li>
+              </ul>
+            </div>
+          </div>
+
+          <div class="guide-section">
+            <div class="guide-step-num">4</div>
+            <div class="guide-body">
+              <h3>Add Your Races</h3>
+              <p>On the <strong>Overview</strong> tab, click <strong>+ Add Race</strong> in the My Races card. Enter your race details and target times — swim, T1, bike, T2, and run will auto-sum to a total time.</p>
+              <p>Click <strong>Coach's Opinion</strong> on any race to get AI feedback on whether your targets are realistic.</p>
+            </div>
+          </div>
+
+          <div class="guide-section">
+            <div class="guide-step-num">5</div>
+            <div class="guide-body">
+              <h3>Log Your Sessions</h3>
+              <p>Go to the <strong>Log Session</strong> tab after every workout. Fill in:</p>
+              <ul>
+                <li>Date, discipline (swim / bike / run / brick / S&amp;C)</li>
+                <li>Duration, distance, avg power, HR, RPE</li>
+                <li>Notes on how it felt</li>
+              </ul>
+              <p>Check <em>Request coach feedback</em> to get instant AI analysis of your session.</p>
+            </div>
+          </div>
+
+          <div class="guide-section">
+            <div class="guide-step-num">6</div>
+            <div class="guide-body">
+              <h3>Connect Strava (Optional)</h3>
+              <p>On the <strong>Overview</strong> tab scroll to <em>Integrations</em> and click <strong>Connect Strava</strong>. Once connected, click <strong>Sync</strong> to automatically import your last 60 activities — no manual logging needed.</p>
+              <p>Garmin data syncs to Strava automatically if you have Strava linked in the Garmin Connect app.</p>
+            </div>
+          </div>
+
+          <div class="guide-section">
+            <div class="guide-step-num">7</div>
+            <div class="guide-body">
+              <h3>Get Your Training Plan</h3>
+              <p>Go to the <strong>Training Plan</strong> tab and click <strong>Generate This Week's Plan</strong>. The coach will build a full structured week based on your logged sessions and athlete profile.</p>
+              <p>You can also ask for a plan directly in Coach Chat.</p>
+            </div>
+          </div>
+
+          <div class="guide-section">
+            <div class="guide-step-num">8</div>
+            <div class="guide-body">
+              <h3>Coach Chat</h3>
+              <p>Use the <strong>Coach Chat</strong> tab to talk to your AI coach anytime. You can:</p>
+              <ul>
+                <li>Send session updates and get feedback</li>
+                <li>Ask for weekly training plans</li>
+                <li>Get advice on pacing, injury, race strategy</li>
+                <li>Use the quick-action buttons for common requests</li>
+              </ul>
+              <p>The coach automatically has your last 4 months of training history in context.</p>
+            </div>
+          </div>
+
+          <div class="guide-section">
+            <div class="guide-step-num">9</div>
+            <div class="guide-body">
+              <h3>Sync Across Devices</h3>
+              <p>Sign in with your <strong>Google account</strong> to sync your data across all devices. Your sessions, targets, races, and profile are all tied to your Google account.</p>
+              <p>Once signed in, just log in on any device and everything is there.</p>
+            </div>
+          </div>
+
+          <div class="guide-section">
+            <div class="guide-step-num">10</div>
+            <div class="guide-body">
+              <h3>Rate Limits</h3>
+              <p>To prevent abuse, the following limits apply per user per hour:</p>
+              <ul>
+                <li><strong>Coach Chat</strong> — 20 messages/hour</li>
+                <li><strong>Race Coach Opinion</strong> — 10 requests/hour</li>
+                <li><strong>Coach Notices</strong> — 5 regenerations/hour (cached for 24hrs)</li>
+              </ul>
+            </div>
+          </div>
+
+        </div>
       </section>
 
       <!-- PROFILE TAB -->

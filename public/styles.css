@@ -1071,6 +1071,39 @@ input:focus, select:focus, textarea:focus { outline: none; }
 
 .login-hint { font-size: 12px; color: var(--text3); margin-top: 16px; }
 
+/* ── User Guide ──────────────────────────────────────────────────────────────── */
+.guide-wrap { display: flex; flex-direction: column; gap: 16px; max-width: 700px; }
+
+.guide-section {
+  display: flex;
+  gap: 20px;
+  background: var(--bg2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 20px 24px;
+}
+
+.guide-step-num {
+  flex-shrink: 0;
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  background: var(--blue);
+  color: #fff;
+  font-size: 14px;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-top: 2px;
+}
+
+.guide-body h3 { font-size: 15px; font-weight: 600; margin-bottom: 8px; }
+.guide-body p  { font-size: 13px; color: var(--text2); line-height: 1.6; margin-bottom: 8px; }
+.guide-body p:last-child { margin-bottom: 0; }
+.guide-body ul { font-size: 13px; color: var(--text2); line-height: 1.7; padding-left: 18px; margin: 6px 0; }
+.guide-body strong { color: var(--text); }
+
 /* ── Profile Page ────────────────────────────────────────────────────────────── */
 .profile-page-wrap { max-width: 480px; }
 
