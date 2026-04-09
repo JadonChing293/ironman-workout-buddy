@@ -1117,6 +1117,49 @@ async function saveTargets() {
   });
 }
 
+function renderMetricCards() {
+  const el = document.getElementById('metrics-grid');
+  if (!el) return;
+  const auto = computeAutoValues();
+
+  const cards = [
+    { id: 'ftp',         color: 'var(--blue)',   icon: '⚡' },
+    { id: 'z2power',     color: 'var(--amber)',  icon: '🔥' },
+    { id: 'racepower',   color: 'var(--green)',  icon: '🏁' },
+    { id: 'weeklyhours', color: 'var(--purple)', icon: '🕐' },
+  ];
+
+  el.innerHTML = cards.map(({ id, color, icon }) => {
+    const t = targets.find(t => t.id === id);
+    if (!t) return '';
+
+    const current = t.autoCalc && auto[t.autoCalc] != null ? auto[t.autoCalc] : t.current;
+    const target  = t.target;
+    const hasValues = current != null && target != null && Number(target) > 0;
+
+    let pct = 0;
+    if (hasValues) {
+      pct = t.lowerIsBetter
+        ? Math.min(100, Math.round((Number(target) / Number(current)) * 100))
+        : Math.min(100, Math.round((Number(current) / Number(target)) * 100));
+    }
+
+    const currentStr = current != null && current !== 0 ? `${current}` : '—';
+    const targetStr  = target  != null && target  !== 0 ? `${target}`  : 'Not set';
+    const sub = target != null && target !== 0
+      ? `Target: ${targetStr} ${escHtml(t.unit || '')}`
+      : 'Set a target in Goals & Targets';
+
+    return `
+      <div class="metric-card" onclick="switchTab('overview')" style="cursor:default">
+        <div class="metric-label">${escHtml(t.label)}</div>
+        <div class="metric-value">${currentStr} <span class="metric-unit">${escHtml(t.unit || '')}</span></div>
+        <div class="metric-sub">${sub}</div>
+        <div class="metric-bar"><div class="metric-fill" style="width:${pct}%;background:${color}"></div></div>
+      </div>`;
+  }).join('');
+}
+
 function computeAutoValues() {
   const now = new Date();
   const weekStart = new Date(now);
@@ -1136,6 +1179,7 @@ function computeAutoValues() {
 }
 
 function renderTargets() {
+  renderMetricCards();
   const el = document.getElementById('targets-list');
   if (!el) return;
   if (!targets.length) {
