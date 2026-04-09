@@ -1472,7 +1472,39 @@ input:focus, select:focus, textarea:focus { outline: none; }
 /* ── Mobile Bottom Nav ───────────────────────────────────────────────────────── */
 .mobile-nav { display: none; }
 
-/* ── Responsive ──────────────────────────────────────────────────────────────── */
+/* ── Tablet (769px – 1024px): narrow sidebar, tighter content ────────────────── */
+@media (min-width: 769px) and (max-width: 1024px) {
+  :root { --sidebar-w: 200px; }
+
+  .tab-content { padding: 20px 24px; max-width: 100%; }
+
+  #tab-coach { padding: 20px 24px 12px; max-width: 100%; }
+
+  .metrics-grid { grid-template-columns: repeat(2, 1fr); gap: 12px; }
+
+  .metric-value { font-size: 22px; }
+
+  .two-col { grid-template-columns: 1fr; }
+
+  .charts-grid { grid-template-columns: 1fr; }
+  .chart-card.wide { grid-column: 1; }
+
+  .page-header h1 { font-size: 20px; }
+
+  .brand-name { font-size: 12px; }
+  .nav-item { font-size: 12px; padding: 8px 10px; }
+
+  .modal { max-width: 540px; }
+}
+
+/* ── Large Desktop (1280px+): wider content area ─────────────────────────────── */
+@media (min-width: 1280px) {
+  .tab-content { padding: 32px 40px; }
+  #tab-coach   { padding: 32px 40px 20px; }
+  .metrics-grid { grid-template-columns: repeat(4, 1fr); }
+}
+
+/* ── Mobile (≤768px) ─────────────────────────────────────────────────────────── */
 @media (max-width: 768px) {
   html { font-size: 14px; }
   body { overflow: auto; }
@@ -1481,19 +1513,16 @@ input:focus, select:focus, textarea:focus { outline: none; }
     flex-direction: column;
     height: auto;
     min-height: 100vh;
-    padding-bottom: 68px;
+    padding-bottom: 64px;
   }
 
-  /* Hide desktop sidebar */
+  /* Hide sidebar, show mobile bottom nav */
   .sidebar { display: none; }
 
-  /* Mobile bottom nav — scrollable so all items fit */
   .mobile-nav {
     display: flex;
     position: fixed;
-    bottom: 0;
-    left: 0;
-    right: 0;
+    bottom: 0; left: 0; right: 0;
     background: var(--bg2);
     border-top: 1px solid var(--border);
     z-index: 100;
@@ -1503,12 +1532,11 @@ input:focus, select:focus, textarea:focus { outline: none; }
     scrollbar-width: none;
     -webkit-overflow-scrolling: touch;
   }
-
   .mobile-nav::-webkit-scrollbar { display: none; }
 
   .mobile-nav-item {
     flex: 0 0 auto;
-    min-width: 64px;
+    min-width: 62px;
     display: flex;
     flex-direction: column;
     align-items: center;
@@ -1517,41 +1545,21 @@ input:focus, select:focus, textarea:focus { outline: none; }
     color: var(--text3);
     font-size: 9px;
     font-weight: 500;
-    padding: 8px 6px;
+    padding: 8px 4px;
     cursor: pointer;
     transition: color 0.15s;
   }
-
-  .mobile-nav-item svg { width: 20px; height: 20px; }
+  .mobile-nav-item svg  { width: 20px; height: 20px; }
   .mobile-nav-item.active { color: var(--blue); }
 
   /* Tab content */
-  .tab-content {
-    padding: 14px;
-    max-width: 100%;
-  }
+  .tab-content { padding: 14px 14px 20px; max-width: 100%; }
 
   #tab-coach {
     padding: 14px;
-    height: calc(100vh - 68px);
+    height: calc(100vh - 64px);
     max-width: 100%;
   }
-
-  /* Metric cards: 2 per row */
-  .metrics-grid {
-    grid-template-columns: 1fr 1fr;
-    gap: 10px;
-  }
-
-  .metric-value { font-size: 20px; }
-  .metric-sub   { font-size: 10px; }
-
-  /* Stack two-col */
-  .two-col { grid-template-columns: 1fr; gap: 12px; }
-
-  /* Stack charts */
-  .charts-grid { grid-template-columns: 1fr; }
-  .chart-card.wide { grid-column: 1; }
 
   /* Page header */
   .page-header {
@@ -1560,47 +1568,44 @@ input:focus, select:focus, textarea:focus { outline: none; }
     align-items: flex-start;
     margin-bottom: 14px;
   }
-
-  .page-header h1 { font-size: 18px; }
+  .page-header h1   { font-size: 18px; }
   .page-header .btn { width: 100%; justify-content: center; }
-
   .race-countdown-pill { font-size: 11px; padding: 6px 10px; }
 
-  /* Forms */
-  .form-row { grid-template-columns: 1fr; }
+  /* Metric cards 2×2 */
+  .metrics-grid { grid-template-columns: 1fr 1fr; gap: 10px; }
+  .metric-value { font-size: 18px; }
+  .metric-sub   { font-size: 10px; }
 
-  /* Prevent iOS zoom on input focus */
-  input, select, textarea { font-size: 16px !important; }
-
-  .form-actions {
-    flex-direction: column;
-    align-items: stretch;
-    gap: 10px;
-  }
-  .form-actions .btn { width: 100%; justify-content: center; }
+  /* Layouts */
+  .two-col     { grid-template-columns: 1fr; gap: 12px; }
+  .charts-grid { grid-template-columns: 1fr; }
+  .chart-card.wide { grid-column: 1; }
 
   /* Cards */
-  .card { padding: 14px; margin-bottom: 12px; }
-  .card-header { margin-bottom: 12px; }
+  .card         { padding: 14px; margin-bottom: 12px; }
+  .card-header  { margin-bottom: 12px; }
 
-  /* Modals — full screen on mobile */
-  .modal-overlay {
-    align-items: flex-end;
-    padding: 0;
-  }
-
+  /* Modals slide up from bottom */
+  .modal-overlay { align-items: flex-end; padding: 0; }
   .modal {
     width: 100%;
     max-width: 100%;
     border-radius: var(--radius) var(--radius) 0 0;
-    max-height: 92vh;
+    max-height: 90vh;
     overflow-y: auto;
-    padding: 20px 16px;
+    padding: 20px 16px 32px;
   }
 
-  /* Race card */
-  .race-days { font-size: 16px; }
-  .race-entry-targets { flex-wrap: wrap; gap: 6px; }
+  /* Forms — prevent iOS zoom */
+  .form-row { grid-template-columns: 1fr; }
+  input, select, textarea { font-size: 16px !important; }
+  .form-actions { flex-direction: column; align-items: stretch; gap: 10px; }
+  .form-actions .btn { width: 100%; justify-content: center; }
+
+  /* Buttons */
+  .btn-sm { padding: 6px 10px; font-size: 11px; }
+  #generate-plan-btn { width: 100%; justify-content: center; }
 
   /* Chat */
   .chat-quick-actions {
@@ -1613,31 +1618,44 @@ input:focus, select:focus, textarea:focus { outline: none; }
   .chat-quick-actions::-webkit-scrollbar { display: none; }
   .quick-btn { flex-shrink: 0; }
   .chat-window { padding: 14px; gap: 12px; }
-  .chat-input-area textarea { font-size: 16px !important; }
 
   /* Sessions */
-  .sessions-panel { max-height: none; }
-  .session-item { flex-wrap: wrap; gap: 6px; }
+  .sessions-panel  { max-height: none; }
+  .session-card-stats { gap: 10px; }
+
+  /* Races */
+  .race-days { font-size: 16px; }
+  .race-entry-targets { flex-wrap: wrap; gap: 6px; }
+  .race-card { flex-wrap: wrap; }
 
   /* Targets */
-  .target-row { flex-direction: column; gap: 6px; }
-  .target-top  { flex-wrap: wrap; }
+  .target-top { flex-wrap: wrap; }
 
   /* Guide */
-  .guide-section { gap: 12px; padding: 14px; }
+  .guide-section  { gap: 12px; padding: 14px; }
   .guide-step-num { width: 26px; height: 26px; font-size: 12px; flex-shrink: 0; }
-  .guide-body h3 { font-size: 14px; }
+  .guide-body h3  { font-size: 14px; }
 
   /* Profile */
-  .profile-page-wrap { max-width: 100%; }
+  .profile-page-wrap   { max-width: 100%; }
   .profile-avatar-large { width: 80px; height: 80px; font-size: 26px; }
 
   /* Misc */
   .ftp-date { width: 90px; font-size: 11px; }
-  .alert { font-size: 12px; padding: 10px 12px; }
-  #generate-plan-btn { width: 100%; justify-content: center; }
-  .btn-sm { padding: 5px 10px; font-size: 11px; }
-
-  /* Integrations */
+  .alert    { font-size: 12px; padding: 10px 12px; }
   .integration-item { flex-wrap: wrap; gap: 8px; }
+
+  /* Login screen */
+  .login-box { padding: 28px 20px; }
+}
+
+/* ── Very small phones (≤380px) ──────────────────────────────────────────────── */
+@media (max-width: 380px) {
+  .metrics-grid { grid-template-columns: 1fr 1fr; gap: 8px; }
+  .metric-value { font-size: 16px; }
+  .metric-card  { padding: 12px; }
+  .mobile-nav-item { min-width: 52px; font-size: 8px; }
+  .page-header h1 { font-size: 16px; }
+  .card { padding: 12px; }
+  .chat-window { padding: 10px; }
 }
