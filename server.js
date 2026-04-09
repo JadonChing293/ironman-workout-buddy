@@ -475,6 +475,45 @@ app.post('/api/races', (req, res) => {
   res.json({ success: true });
 });
 
+app.post('/api/races/opinion', async (req, res) => {
+  const { userId, apiKey, race } = req.body;
+  if (!validUserId(userId)) return res.status(400).json({ error: 'Invalid userId' });
+
+  const anthropicClient = apiKey ? new Anthropic({ apiKey: apiKey.trim() }) : client;
+  const sessions = loadJSON(userFile(userId, 'sessions.json'), []);
+
+  // Recent bike/run/swim averages
+  const recent = sessions.slice(0, 30);
+  const bikePowers = recent.filter(s => s.type === 'bike' && s.power).map(s => Number(s.power));
+  const avgPower = bikePowers.length ? Math.round(bikePowers.reduce((a,b) => a+b) / bikePowers.length) : null;
+
+  const t = race.targets || {};
+  const prompt = `You are an Ironman coach. A athlete is targeting the following for ${race.name} (${race.distance}, ${race.date}):
+- Swim: ${t.swim || 'not set'}
+- T1: ${t.t1 || '0:05:00'}
+- Bike: ${t.bike || 'not set'}
+- T2: ${t.t2 || '0:03:00'}
+- Run: ${t.run || 'not set'}
+- Total: ${t.total || 'not set'}
+- Target bike power: ${t.bikePower ? t.bikePower + 'W' : 'not set'}
+- Target run pace: ${t.runPace || 'not set'}
+
+Athlete context: FTP 201W, recent avg bike power ${avgPower ? avgPower + 'W' : 'unknown'}, sub-13hr Ironman finisher (13:28 at South Hokkaido 2025), currently rebuilding after injury.
+
+Give a brief, direct coach opinion (3–5 sentences max) on whether these targets are realistic, which splits look too aggressive or too conservative, and one key focus area. Be specific with numbers.`;
+
+  try {
+    const response = await anthropicClient.messages.create({
+      model: 'claude-sonnet-4-6',
+      max_tokens: 300,
+      messages: [{ role: 'user', content: prompt }],
+    });
+    res.json({ opinion: response.content[0].text.trim() });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
 // ── Targets ───────────────────────────────────────────────────────────────────
 const DEFAULT_TARGETS = [
   { id: 'ftp',         label: 'FTP',            unit: 'W',      current: 201,  target: 240,  autoCalc: null },

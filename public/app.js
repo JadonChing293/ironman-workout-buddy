@@ -847,13 +847,24 @@ function renderRaces() {
         </div>
         ${hasTargets ? `
         <div class="race-entry-targets">
-          ${t.swim       ? `<div class="rt-item"><span>Swim</span><span>${t.swim}</span></div>` : ''}
-          ${t.bike       ? `<div class="rt-item"><span>Bike</span><span>${t.bike}</span></div>` : ''}
-          ${t.run        ? `<div class="rt-item"><span>Run</span><span>${t.run}</span></div>` : ''}
-          ${t.total      ? `<div class="rt-item total"><span>Total</span><span>${t.total}</span></div>` : ''}
-          ${t.bikePower  ? `<div class="rt-item"><span>Bike Power</span><span>${t.bikePower}W</span></div>` : ''}
-          ${t.runPace    ? `<div class="rt-item"><span>Run Pace</span><span>${t.runPace}</span></div>` : ''}
-        </div>` : ''}
+          ${t.swim      ? `<div class="rt-item"><span>Swim</span><span>${t.swim}</span></div>` : ''}
+          ${t.t1        ? `<div class="rt-item transition"><span>T1</span><span>${t.t1}</span></div>` : ''}
+          ${t.bike      ? `<div class="rt-item"><span>Bike</span><span>${t.bike}</span></div>` : ''}
+          ${t.t2        ? `<div class="rt-item transition"><span>T2</span><span>${t.t2}</span></div>` : ''}
+          ${t.run       ? `<div class="rt-item"><span>Run</span><span>${t.run}</span></div>` : ''}
+          ${t.total     ? `<div class="rt-item total"><span>Total</span><span>${t.total}</span></div>` : ''}
+          ${t.bikePower ? `<div class="rt-item"><span>Bike Power</span><span>${t.bikePower}W</span></div>` : ''}
+          ${t.runPace   ? `<div class="rt-item"><span>Run Pace</span><span>${t.runPace}</span></div>` : ''}
+        </div>
+        ${r.coachOpinion ? `
+        <div class="race-coach-opinion">
+          <span class="opinion-label">🏆 Coach:</span>
+          <span>${escHtml(r.coachOpinion)}</span>
+        </div>` : hasTargets && !isPast ? `
+        <button class="btn btn-ghost btn-sm opinion-btn" onclick="getCoachOpinion(${JSON.stringify(r).replace(/"/g, '&quot;')})">
+          🏆 Get coach opinion
+        </button>` : ''}
+        ` : ''}
       </div>
     `;
   }).join('');
@@ -882,7 +893,9 @@ function openAddRace() {
   document.getElementById('race-priority').value = 'A';
   document.getElementById('race-location').value = '';
   document.getElementById('race-target-swim').value = '';
+  document.getElementById('race-target-t1').value = '0:05:00';
   document.getElementById('race-target-bike').value = '';
+  document.getElementById('race-target-t2').value = '0:03:00';
   document.getElementById('race-target-run').value = '';
   document.getElementById('race-target-total').value = '';
   document.getElementById('race-target-power').value = '';
@@ -903,11 +916,14 @@ function openEditRace(id) {
   document.getElementById('race-priority').value = r.priority || 'A';
   document.getElementById('race-location').value = r.location || '';
   document.getElementById('race-target-swim').value = t.swim || '';
+  document.getElementById('race-target-t1').value = t.t1 || '0:05:00';
   document.getElementById('race-target-bike').value = t.bike || '';
+  document.getElementById('race-target-t2').value = t.t2 || '0:03:00';
   document.getElementById('race-target-run').value = t.run || '';
   document.getElementById('race-target-total').value = t.total || '';
   document.getElementById('race-target-power').value = t.bikePower || '';
   document.getElementById('race-target-pace').value = t.runPace || '';
+  autoCalcTotal();
   document.getElementById('race-delete-btn').style.display = '';
   document.getElementById('race-modal').classList.remove('hidden');
 }
@@ -926,7 +942,9 @@ async function saveRace() {
     location: document.getElementById('race-location').value.trim(),
     targets: {
       swim:      document.getElementById('race-target-swim').value.trim()  || null,
+      t1:        document.getElementById('race-target-t1').value.trim()    || '0:05:00',
       bike:      document.getElementById('race-target-bike').value.trim()  || null,
+      t2:        document.getElementById('race-target-t2').value.trim()    || '0:03:00',
       run:       document.getElementById('race-target-run').value.trim()   || null,
       total:     document.getElementById('race-target-total').value.trim() || null,
       bikePower: document.getElementById('race-target-power').value ? Number(document.getElementById('race-target-power').value) : null,
@@ -945,6 +963,31 @@ async function saveRace() {
   renderRaces();
   renderRaceCountdown();
   closeRaceModal();
+
+  // Get coach opinion in background if targets are set
+  if (race.targets.swim || race.targets.bike || race.targets.run) {
+    getCoachOpinion(race);
+  }
+}
+
+async function getCoachOpinion(race) {
+  try {
+    const res = await fetch('/api/races/opinion', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ userId: getUserId(), apiKey: getApiKey(), race }),
+    });
+    const data = await res.json();
+    if (!data.opinion) return;
+
+    // Store opinion on the race
+    const idx = races.findIndex(r => r.id === race.id);
+    if (idx !== -1) {
+      races[idx].coachOpinion = data.opinion;
+      await saveRaces();
+      renderRaces();
+    }
+  } catch (e) {}
 }
 
 async function deleteRace() {
@@ -1060,6 +1103,36 @@ function renderTargets() {
       </div>
     `;
   }).join('');
+}
+
+function parseTimeToSecs(str) {
+  if (!str) return null;
+  const parts = str.trim().split(':').map(Number);
+  if (parts.some(isNaN)) return null;
+  if (parts.length === 3) return parts[0] * 3600 + parts[1] * 60 + parts[2];
+  if (parts.length === 2) return parts[0] * 3600 + parts[1] * 60;
+  return null;
+}
+
+function secsToTimeStr(secs) {
+  if (secs == null || isNaN(secs)) return '';
+  const h = Math.floor(secs / 3600);
+  const m = Math.floor((secs % 3600) / 60);
+  const s = secs % 60;
+  return `${h}:${String(m).padStart(2,'0')}:${String(s).padStart(2,'0')}`;
+}
+
+function autoCalcTotal() {
+  const swim  = parseTimeToSecs(document.getElementById('race-target-swim')?.value);
+  const t1    = parseTimeToSecs(document.getElementById('race-target-t1')?.value);
+  const bike  = parseTimeToSecs(document.getElementById('race-target-bike')?.value);
+  const t2    = parseTimeToSecs(document.getElementById('race-target-t2')?.value);
+  const run   = parseTimeToSecs(document.getElementById('race-target-run')?.value);
+  const parts = [swim, t1, bike, t2, run].filter(v => v != null);
+  const totalEl = document.getElementById('race-target-total');
+  if (totalEl && parts.length > 0) {
+    totalEl.value = secsToTimeStr(parts.reduce((a, b) => a + b, 0));
+  }
 }
 
 function secsToPace(secs) {

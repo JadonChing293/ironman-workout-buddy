@@ -1139,6 +1139,30 @@ input:focus, select:focus, textarea:focus { outline: none; }
 .rt-item span:first-child { font-size: 10px; color: var(--text3); text-transform: uppercase; letter-spacing: 0.04em; font-weight: 600; }
 .rt-item span:last-child  { font-size: 13px; font-weight: 600; color: var(--text); }
 .rt-item.total span:last-child { color: var(--green); font-size: 15px; }
+.rt-item.transition { opacity: 0.5; }
+.rt-item.transition span:first-child { color: var(--text3); }
+
+.race-coach-opinion {
+  display: flex;
+  gap: 8px;
+  margin-top: 10px;
+  padding: 10px 12px;
+  background: var(--blue-dim);
+  border: 1px solid rgba(59,130,246,0.2);
+  border-radius: var(--radius-sm);
+  font-size: 12px;
+  line-height: 1.6;
+  color: var(--text2);
+}
+
+.opinion-label { color: var(--blue); font-weight: 600; flex-shrink: 0; }
+
+.opinion-btn {
+  margin-top: 8px;
+  font-size: 11px;
+  width: 100%;
+  justify-content: center;
+}
 
 .modal-section-label {
   font-size: 11px;

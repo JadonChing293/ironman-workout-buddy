@@ -221,21 +221,31 @@
             <div class="form-row" style="text-align:left">
               <div class="form-group">
                 <label>Swim Target</label>
-                <input type="text" id="race-target-swim" placeholder="e.g. 1:10:00" />
+                <input type="text" id="race-target-swim" placeholder="e.g. 1:10:00" oninput="autoCalcTotal()" />
               </div>
               <div class="form-group">
+                <label>T1 (Transition 1)</label>
+                <input type="text" id="race-target-t1" placeholder="e.g. 0:05:00" value="0:05:00" oninput="autoCalcTotal()" />
+              </div>
+            </div>
+            <div class="form-row" style="text-align:left">
+              <div class="form-group">
                 <label>Bike Target</label>
-                <input type="text" id="race-target-bike" placeholder="e.g. 5:00:00" />
+                <input type="text" id="race-target-bike" placeholder="e.g. 5:00:00" oninput="autoCalcTotal()" />
+              </div>
+              <div class="form-group">
+                <label>T2 (Transition 2)</label>
+                <input type="text" id="race-target-t2" placeholder="e.g. 0:03:00" value="0:03:00" oninput="autoCalcTotal()" />
               </div>
             </div>
             <div class="form-row" style="text-align:left">
               <div class="form-group">
                 <label>Run Target</label>
-                <input type="text" id="race-target-run" placeholder="e.g. 4:00:00" />
+                <input type="text" id="race-target-run" placeholder="e.g. 4:00:00" oninput="autoCalcTotal()" />
               </div>
               <div class="form-group">
-                <label>Total Target</label>
-                <input type="text" id="race-target-total" placeholder="e.g. 11:30:00" />
+                <label>Total Time <span class="auto-badge">auto</span></label>
+                <input type="text" id="race-target-total" placeholder="Auto-calculated" readonly style="opacity:0.7" />
               </div>
             </div>
             <div class="form-row" style="text-align:left">
