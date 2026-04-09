@@ -1,11 +1,32 @@
 /* ── User ID (per-visitor, stored in localStorage) ──────────────────────────── */
 function getUserId() {
+  // Check if a uid was passed in the URL (sync link from another device)
+  const params = new URLSearchParams(window.location.search);
+  const urlUid = params.get('uid');
+  if (urlUid && /^[a-zA-Z0-9-]{8,64}$/.test(urlUid)) {
+    localStorage.setItem('wbUserId', urlUid);
+    // Clean the URL without reloading
+    window.history.replaceState({}, '', window.location.pathname);
+  }
+
   let id = localStorage.getItem('wbUserId');
   if (!id) {
     id = crypto.randomUUID();
     localStorage.setItem('wbUserId', id);
   }
   return id;
+}
+
+function copySyncLink() {
+  const uid  = getUserId();
+  const link = `${window.location.origin}/?uid=${uid}`;
+  navigator.clipboard.writeText(link).then(() => {
+    const btn = document.getElementById('sync-copy-btn');
+    if (btn) { btn.textContent = 'Copied!'; setTimeout(() => btn.textContent = 'Copy my link', 2000); }
+    showToast('✅ Sync link copied — open it on your other device and bookmark it.');
+  }).catch(() => {
+    prompt('Copy this link and open it on your other device:', link);
+  });
 }
 
 /* ── API Key management ──────────────────────────────────────────────────────── */
