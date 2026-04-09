@@ -73,16 +73,9 @@ function showLoginScreen() {
 
 function updateUserDisplay(user) {
   if (!user) return;
-  const nameEl    = document.querySelector('.profile-name');
-  const goalEl    = document.querySelector('.profile-goal');
-  const avatarEl  = document.querySelector('.profile-avatar');
   const logoutBtn = document.getElementById('logout-btn');
-  if (nameEl)  nameEl.textContent = user.name || 'Athlete';
-  if (goalEl)  goalEl.textContent = user.email || 'Sub-12 Ironman';
-  if (avatarEl && user.avatar) {
-    avatarEl.innerHTML = `<img src="${user.avatar}" style="width:100%;height:100%;border-radius:50%;object-fit:cover" />`;
-  }
   if (logoutBtn) logoutBtn.style.display = '';
+  // Profile name/avatar takes priority; applyProfile() will handle the display
 }
 
 function logout() {
@@ -205,6 +198,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   setupNavigation();
   setTodayDate();
   await checkAuth();
+  loadProfile();
   loadRaces();
   loadSessions();
   loadTargets();
@@ -236,6 +230,7 @@ function switchTab(name) {
   // Scroll to top on mobile when switching tabs
   window.scrollTo(0, 0);
   if (name === 'progress') renderCharts();
+  if (name === 'profile')  renderProfilePage();
 }
 
 /* ── Date / Countdown ────────────────────────────────────────────────────────── */
@@ -1409,6 +1404,102 @@ function handleStravaRedirect() {
   } else if (params.get('strava') === 'error') {
     showToast('❌ Strava connection failed. Check your client ID and secret.');
     window.history.replaceState({}, '', '/');
+  }
+}
+
+/* ── Profile ─────────────────────────────────────────────────────────────────── */
+let _profile = { name: '', goal: '', avatar: '' };
+
+async function loadProfile() {
+  try {
+    const res = await fetch(`/api/profile?userId=${getUserId()}`, { headers: getAuthHeaders() });
+    _profile = await res.json();
+    applyProfile();
+    renderProfilePage();
+  } catch (e) {}
+}
+
+function applyProfile() {
+  // Sidebar name/goal
+  const nameEl   = document.querySelector('.profile-name');
+  const goalEl   = document.querySelector('.profile-goal');
+  const avatarEl = document.querySelector('.profile-avatar');
+  if (nameEl)   nameEl.textContent   = _profile.name  || 'Athlete';
+  if (goalEl)   goalEl.textContent   = _profile.goal  || 'Set your goal';
+  if (avatarEl) {
+    if (_profile.avatar) {
+      avatarEl.innerHTML = `<img src="${_profile.avatar}" style="width:100%;height:100%;object-fit:cover;border-radius:50%" />`;
+    } else {
+      const initials = (_profile.name || 'A').split(' ').map(w => w[0]).join('').slice(0, 2).toUpperCase();
+      avatarEl.textContent = initials;
+    }
+  }
+}
+
+function renderProfilePage() {
+  const nameInput   = document.getElementById('profile-name-input');
+  const goalInput   = document.getElementById('profile-goal-input');
+  const img         = document.getElementById('profile-avatar-img');
+  const initials    = document.getElementById('profile-avatar-initials');
+  const removeBtn   = document.getElementById('remove-avatar-btn');
+
+  if (nameInput) nameInput.value = _profile.name  || '';
+  if (goalInput) goalInput.value = _profile.goal  || '';
+
+  if (_profile.avatar) {
+    if (img)      { img.src = _profile.avatar; img.style.display = 'block'; }
+    if (initials) initials.style.display = 'none';
+    if (removeBtn) removeBtn.style.display = '';
+  } else {
+    if (img)      img.style.display = 'none';
+    if (initials) {
+      initials.style.display = '';
+      initials.textContent = (_profile.name || 'A').split(' ').map(w => w[0]).join('').slice(0, 2).toUpperCase();
+    }
+    if (removeBtn) removeBtn.style.display = 'none';
+  }
+}
+
+function handleAvatarUpload(event) {
+  const file = event.target.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = (e) => {
+    // Resize to max 300x300 using canvas
+    const img = new Image();
+    img.onload = () => {
+      const canvas = document.createElement('canvas');
+      const max = 300;
+      const ratio = Math.min(max / img.width, max / img.height, 1);
+      canvas.width  = Math.round(img.width  * ratio);
+      canvas.height = Math.round(img.height * ratio);
+      canvas.getContext('2d').drawImage(img, 0, 0, canvas.width, canvas.height);
+      _profile.avatar = canvas.toDataURL('image/jpeg', 0.8);
+      renderProfilePage();
+    };
+    img.src = e.target.result;
+  };
+  reader.readAsDataURL(file);
+}
+
+function removeAvatar() {
+  _profile.avatar = '';
+  renderProfilePage();
+}
+
+async function saveProfile() {
+  _profile.name = document.getElementById('profile-name-input')?.value.trim() || '';
+  _profile.goal = document.getElementById('profile-goal-input')?.value.trim() || '';
+  try {
+    await fetch('/api/profile', {
+      method: 'POST',
+      headers: getAuthHeaders(),
+      body: JSON.stringify({ userId: getUserId(), ..._profile }),
+    });
+    applyProfile();
+    showToast('✅ Profile saved!');
+  } catch (e) {
+    showToast('❌ Failed to save profile.');
   }
 }
 

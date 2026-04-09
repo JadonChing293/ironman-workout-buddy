@@ -603,6 +603,25 @@ Give a brief, direct coach opinion (3–5 sentences max) on whether these target
   }
 });
 
+// ── Profile ───────────────────────────────────────────────────────────────────
+app.get('/api/profile', (req, res) => {
+  const userId = resolveUserId(req);
+  if (!validUserId(userId)) return res.status(400).json({ error: 'Invalid userId' });
+  res.json(loadJSON(userFile(userId, 'profile.json'), { name: '', goal: '', avatar: '' }));
+});
+
+app.post('/api/profile', express.json({ limit: '3mb' }), (req, res) => {
+  const userId = resolveUserId(req);
+  const { name, goal, avatar } = req.body;
+  if (!validUserId(userId)) return res.status(400).json({ error: 'Invalid userId' });
+  saveJSON(userFile(userId, 'profile.json'), {
+    name:   (name   || '').slice(0, 80),
+    goal:   (goal   || '').slice(0, 120),
+    avatar: (avatar || '').slice(0, 2 * 1024 * 1024), // 2MB cap
+  });
+  res.json({ success: true });
+});
+
 // ── Targets ───────────────────────────────────────────────────────────────────
 const DEFAULT_TARGETS = [
   { id: 'ftp',         label: 'FTP',            unit: 'W',      current: 0,    target: 0,    autoCalc: null },
