@@ -21,13 +21,6 @@ function getUserId() {
     const payload = parseJWT(token);
     if (payload?.userId) return payload.userId;
   }
-  // Fallback: sync link uid param
-  const params = new URLSearchParams(window.location.search);
-  const urlUid = params.get('uid');
-  if (urlUid && /^[a-zA-Z0-9-]{8,64}$/.test(urlUid)) {
-    localStorage.setItem('wbUserId', urlUid);
-    window.history.replaceState({}, '', window.location.pathname);
-  }
   let id = localStorage.getItem('wbUserId');
   if (!id) { id = crypto.randomUUID(); localStorage.setItem('wbUserId', id); }
   return id;
@@ -98,9 +91,11 @@ function logout() {
 
 function copySyncLink() {
   const token = getAuthToken();
-  const link = token
-    ? `${window.location.origin}/?token=${token}`
-    : `${window.location.origin}/?uid=${getUserId()}`;
+  if (!token) {
+    showToast('⚠️ Sign in with Google to sync across devices.');
+    return;
+  }
+  const link = `${window.location.origin}/?token=${token}`;
   navigator.clipboard.writeText(link).then(() => {
     const btn = document.getElementById('sync-copy-btn');
     if (btn) { btn.textContent = 'Copied!'; setTimeout(() => btn.textContent = 'Copy my link', 2000); }
