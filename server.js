@@ -403,11 +403,13 @@ app.post('/api/chat', rateLimit(20, 60 * 60 * 1000), async (req, res) => {
   const userId = resolveUserId(req);
   if (!message) return res.status(400).json({ error: 'Message required' });
   if (!validUserId(userId)) return res.status(400).json({ error: 'Invalid userId' });
+  if (!apiKey) return res.status(403).json({ error: 'API key required' });
 
-  // Use user-provided key if given, otherwise fall back to server key
-  const anthropicClient = apiKey
-    ? new Anthropic({ apiKey: apiKey.trim() })
-    : client;
+  const anthropicClient = new Anthropic({ apiKey: apiKey.trim() });
+
+  // Load user profile to personalise the system prompt
+  const profile = loadJSON(userFile(userId, 'profile.json'), {});
+  const athleteName = profile.name || 'the athlete';
 
   const historyFile = userFile(userId, 'conversation.json');
   const history = loadJSON(historyFile, []);
@@ -427,10 +429,11 @@ app.post('/api/chat', rateLimit(20, 60 * 60 * 1000), async (req, res) => {
   let fullResponse = '';
 
   try {
+    const systemPrompt = SYSTEM_PROMPT.replace(/Name: Joshua/g, `Name: ${athleteName}`);
     const stream = anthropicClient.messages.stream({
       model: 'claude-sonnet-4-6',
       max_tokens: 8096,
-      system: SYSTEM_PROMPT,
+      system: systemPrompt,
       messages: history,
     });
 
@@ -465,6 +468,7 @@ app.post('/api/notices/generate', rateLimit(5, 60 * 60 * 1000), async (req, res)
   const userId = resolveUserId(req);
   const { apiKey } = req.body;
   if (!validUserId(userId)) return res.status(400).json({ error: 'Invalid userId' });
+  if (!apiKey) return res.status(403).json({ error: 'API key required' });
 
   const sessions = loadJSON(userFile(userId, 'sessions.json'), []);
   if (!sessions.length) return res.json({ type: null, message: null });
@@ -475,7 +479,7 @@ app.post('/api/notices/generate', rateLimit(5, 60 * 60 * 1000), async (req, res)
     return res.json(cached);
   }
 
-  const anthropicClient = apiKey ? new Anthropic({ apiKey: apiKey.trim() }) : client;
+  const anthropicClient = new Anthropic({ apiKey: apiKey.trim() });
 
   // Build session summary for last 4 weeks
   const fourWeeksAgo = new Date();
@@ -567,8 +571,9 @@ app.post('/api/races/opinion', rateLimit(10, 60 * 60 * 1000), async (req, res) =
   const userId = resolveUserId(req);
   const { apiKey, race } = req.body;
   if (!validUserId(userId)) return res.status(400).json({ error: 'Invalid userId' });
+  if (!apiKey) return res.status(403).json({ error: 'API key required' });
 
-  const anthropicClient = apiKey ? new Anthropic({ apiKey: apiKey.trim() }) : client;
+  const anthropicClient = new Anthropic({ apiKey: apiKey.trim() });
   const sessions = loadJSON(userFile(userId, 'sessions.json'), []);
 
   // Recent bike/run/swim averages

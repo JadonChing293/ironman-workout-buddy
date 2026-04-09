@@ -151,6 +151,13 @@ function updateApiKeyIndicator() {
     dot.style.background = 'var(--amber)';
     label.textContent = 'No API key';
   }
+  // Show/hide the no-api-key banner in chat
+  const banner   = document.getElementById('no-api-key-banner');
+  const chatInput = document.getElementById('chat-input');
+  const sendBtn   = document.getElementById('send-btn');
+  if (banner) banner.classList.toggle('hidden', !!key);
+  if (chatInput) chatInput.disabled = !key;
+  if (sendBtn)   sendBtn.disabled   = !key;
 }
 
 function checkFirstVisit() {
@@ -548,6 +555,11 @@ function renderTypingIndicator() {
 }
 
 async function sendMessage() {
+  if (!getApiKey()) {
+    showToast('⚠️ Add your Anthropic API key first to use the coach.');
+    showApiKeyModal();
+    return;
+  }
   const input = document.getElementById('chat-input');
   const btn = document.getElementById('send-btn');
   const text = input.value.trim();
