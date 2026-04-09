@@ -1474,19 +1474,20 @@ input:focus, select:focus, textarea:focus { outline: none; }
 
 /* ── Responsive ──────────────────────────────────────────────────────────────── */
 @media (max-width: 768px) {
+  html { font-size: 14px; }
   body { overflow: auto; }
 
   #app {
     flex-direction: column;
     height: auto;
     min-height: 100vh;
-    padding-bottom: 64px;
+    padding-bottom: 68px;
   }
 
   /* Hide desktop sidebar */
   .sidebar { display: none; }
 
-  /* Show mobile bottom nav */
+  /* Mobile bottom nav — scrollable so all items fit */
   .mobile-nav {
     display: flex;
     position: fixed;
@@ -1496,92 +1497,112 @@ input:focus, select:focus, textarea:focus { outline: none; }
     background: var(--bg2);
     border-top: 1px solid var(--border);
     z-index: 100;
-    padding: 0;
     height: 60px;
+    overflow-x: auto;
+    overflow-y: hidden;
+    scrollbar-width: none;
+    -webkit-overflow-scrolling: touch;
   }
 
+  .mobile-nav::-webkit-scrollbar { display: none; }
+
   .mobile-nav-item {
-    flex: 1;
+    flex: 0 0 auto;
+    min-width: 64px;
     display: flex;
     flex-direction: column;
     align-items: center;
     justify-content: center;
     gap: 3px;
     color: var(--text3);
-    font-size: 10px;
+    font-size: 9px;
     font-weight: 500;
-    padding: 8px 0;
+    padding: 8px 6px;
     cursor: pointer;
     transition: color 0.15s;
   }
 
   .mobile-nav-item svg { width: 20px; height: 20px; }
-
   .mobile-nav-item.active { color: var(--blue); }
-  .mobile-nav-item:hover { color: var(--text); }
 
-  /* Tab content full width */
+  /* Tab content */
   .tab-content {
-    padding: 16px;
+    padding: 14px;
     max-width: 100%;
   }
 
   #tab-coach {
-    padding: 16px;
-    height: calc(100vh - 64px);
+    padding: 14px;
+    height: calc(100vh - 68px);
     max-width: 100%;
   }
 
-  /* Stack metric cards 2x2 */
+  /* Metric cards: 2 per row */
   .metrics-grid {
     grid-template-columns: 1fr 1fr;
     gap: 10px;
   }
 
-  /* Stack two-col layouts */
-  .two-col {
-    grid-template-columns: 1fr;
-    gap: 12px;
-  }
+  .metric-value { font-size: 20px; }
+  .metric-sub   { font-size: 10px; }
+
+  /* Stack two-col */
+  .two-col { grid-template-columns: 1fr; gap: 12px; }
 
   /* Stack charts */
-  .charts-grid {
-    grid-template-columns: 1fr;
-  }
-
+  .charts-grid { grid-template-columns: 1fr; }
   .chart-card.wide { grid-column: 1; }
 
-  /* Page header stack on mobile */
+  /* Page header */
   .page-header {
     flex-direction: column;
-    gap: 10px;
+    gap: 8px;
     align-items: flex-start;
-    margin-bottom: 16px;
+    margin-bottom: 14px;
   }
 
   .page-header h1 { font-size: 18px; }
+  .page-header .btn { width: 100%; justify-content: center; }
 
-  .race-countdown-pill { font-size: 12px; }
+  .race-countdown-pill { font-size: 11px; padding: 6px 10px; }
 
-  /* Stack form rows */
+  /* Forms */
   .form-row { grid-template-columns: 1fr; }
 
-  /* Form actions stack */
+  /* Prevent iOS zoom on input focus */
+  input, select, textarea { font-size: 16px !important; }
+
   .form-actions {
     flex-direction: column;
-    align-items: flex-start;
-    gap: 12px;
+    align-items: stretch;
+    gap: 10px;
   }
-
   .form-actions .btn { width: 100%; justify-content: center; }
 
-  /* Metric values smaller */
-  .metric-value { font-size: 22px; }
+  /* Cards */
+  .card { padding: 14px; margin-bottom: 12px; }
+  .card-header { margin-bottom: 12px; }
 
-  /* Race card compact */
+  /* Modals — full screen on mobile */
+  .modal-overlay {
+    align-items: flex-end;
+    padding: 0;
+  }
+
+  .modal {
+    width: 100%;
+    max-width: 100%;
+    border-radius: var(--radius) var(--radius) 0 0;
+    max-height: 92vh;
+    overflow-y: auto;
+    padding: 20px 16px;
+  }
+
+  /* Race card */
   .race-days { font-size: 16px; }
+  .race-entry-targets { flex-wrap: wrap; gap: 6px; }
 
-  /* Chat quick actions scroll horizontally */
+  /* Chat */
   .chat-quick-actions {
     flex-wrap: nowrap;
     overflow-x: auto;
@@ -1589,26 +1610,34 @@ input:focus, select:focus, textarea:focus { outline: none; }
     -webkit-overflow-scrolling: touch;
     scrollbar-width: none;
   }
-
   .chat-quick-actions::-webkit-scrollbar { display: none; }
-
   .quick-btn { flex-shrink: 0; }
+  .chat-window { padding: 14px; gap: 12px; }
+  .chat-input-area textarea { font-size: 16px !important; }
 
-  /* Chat input area */
-  .chat-input-area textarea { font-size: 16px; /* Prevents iOS zoom */ }
-
-  /* Cards less padding */
-  .card { padding: 14px; }
-
-  /* FTP history compact */
-  .ftp-date { width: 100px; font-size: 11px; }
-
-  /* Sessions panel no max height on mobile */
+  /* Sessions */
   .sessions-panel { max-height: none; }
+  .session-item { flex-wrap: wrap; gap: 6px; }
 
-  /* Alert text smaller */
-  .alert { font-size: 12px; }
+  /* Targets */
+  .target-row { flex-direction: column; gap: 6px; }
+  .target-top  { flex-wrap: wrap; }
 
-  /* Generate plan button full width */
+  /* Guide */
+  .guide-section { gap: 12px; padding: 14px; }
+  .guide-step-num { width: 26px; height: 26px; font-size: 12px; flex-shrink: 0; }
+  .guide-body h3 { font-size: 14px; }
+
+  /* Profile */
+  .profile-page-wrap { max-width: 100%; }
+  .profile-avatar-large { width: 80px; height: 80px; font-size: 26px; }
+
+  /* Misc */
+  .ftp-date { width: 90px; font-size: 11px; }
+  .alert { font-size: 12px; padding: 10px 12px; }
   #generate-plan-btn { width: 100%; justify-content: center; }
+  .btn-sm { padding: 5px 10px; font-size: 11px; }
+
+  /* Integrations */
+  .integration-item { flex-wrap: wrap; gap: 8px; }
 }
