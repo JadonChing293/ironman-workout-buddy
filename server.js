@@ -368,8 +368,37 @@ function buildTrainingContext(userId) {
   return summary;
 }
 
+// ── Rate limiting ─────────────────────────────────────────────────────────────
+const rateLimitStore = new Map(); // key → [timestamps]
+
+function rateLimit(maxRequests, windowMs) {
+  return (req, res, next) => {
+    const userId = resolveUserId(req);
+    const key = `${req.path}:${userId || req.ip}`;
+    const now = Date.now();
+    const timestamps = (rateLimitStore.get(key) || []).filter(t => now - t < windowMs);
+    if (timestamps.length >= maxRequests) {
+      const retryAfter = Math.ceil((timestamps[0] + windowMs - now) / 1000);
+      return res.status(429).json({ error: `Too many requests. Try again in ${retryAfter}s.` });
+    }
+    timestamps.push(now);
+    rateLimitStore.set(key, timestamps);
+    next();
+  };
+}
+
+// Clean up old entries every 10 minutes to prevent memory growth
+setInterval(() => {
+  const now = Date.now();
+  for (const [key, timestamps] of rateLimitStore.entries()) {
+    const fresh = timestamps.filter(t => now - t < 60 * 60 * 1000);
+    if (fresh.length === 0) rateLimitStore.delete(key);
+    else rateLimitStore.set(key, fresh);
+  }
+}, 10 * 60 * 1000);
+
 // ── Chat (streaming SSE) ──────────────────────────────────────────────────────
-app.post('/api/chat', async (req, res) => {
+app.post('/api/chat', rateLimit(20, 60 * 60 * 1000), async (req, res) => {
   const { message, apiKey } = req.body;
   const userId = resolveUserId(req);
   if (!message) return res.status(400).json({ error: 'Message required' });
@@ -432,7 +461,7 @@ app.get('/api/notices', (req, res) => {
   res.json(notice || { type: null, message: null, generatedAt: null });
 });
 
-app.post('/api/notices/generate', async (req, res) => {
+app.post('/api/notices/generate', rateLimit(5, 60 * 60 * 1000), async (req, res) => {
   const userId = resolveUserId(req);
   const { apiKey } = req.body;
   if (!validUserId(userId)) return res.status(400).json({ error: 'Invalid userId' });
@@ -534,7 +563,7 @@ app.post('/api/races', (req, res) => {
   res.json({ success: true });
 });
 
-app.post('/api/races/opinion', async (req, res) => {
+app.post('/api/races/opinion', rateLimit(10, 60 * 60 * 1000), async (req, res) => {
   const userId = resolveUserId(req);
   const { apiKey, race } = req.body;
   if (!validUserId(userId)) return res.status(400).json({ error: 'Invalid userId' });
